@@ -1,0 +1,266 @@
+
+cat <<EOF > nfd-instance.yaml
+apiVersion: nfd.openshift.io/v1
+kind: NodeFeatureDiscovery
+metadata:
+  name: nfd-instance
+  namespace: openshift-nfd
+spec:
+  instance: ''
+  operand:
+    image: '${NFD_OPERAND_IMAGE}'     ## In version 4.18 this is not needed
+    servicePort: 12000
+  prunerOnDelete: false
+  topologyUpdater: false
+  workerConfig:
+    configData: |
+      core:
+        sleepInterval: 60s
+      sources:
+        pci:
+          deviceClassWhitelist:
+            - "02"
+            - "03"
+            - "0200"
+            - "0207"
+            - "12"
+          deviceLabelFields:
+            - "vendor"
+EOF
+
+## Install NMState operator ??
+## Will this be needed in the new env?
+
+## Install and Configure SRIOV Operator
+## Is this needed and what does it to?
+
+## Install and Configure NVIDIA Network Operator
+## What values do we change?
+
+How do we find ifName
+$iplink   - look for ens
+$ip a
+
+cat <<EOF > network-sharedrdma-nic-cluster-policy.yaml
+apiVersion: mellanox.com/v1alpha1
+kind: NicClusterPolicy
+metadata:
+  name: nic-cluster-policy
+spec:
+  rdmaSharedDevicePlugin:
+    config: |
+      {
+        "configList": [
+          {
+            "resourceName": "rdma_shared_device_eth",
+            "rdmaHcaMax": 63,
+            "selectors": {
+              "ifNames": ["ens8f1np1"]  ## UPDATE
+            }
+          }
+        ]
+      }
+    image: k8s-rdma-shared-dev-plugin
+    repository: ghcr.io/mellanox
+    version: 'sha256:9f468fdc4449e65e4772575f83aa85840a00f97165f9a00ba34695c91d610fbd'
+  ofedDriver:
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    forcePrecompiled: false
+    terminationGracePeriodSeconds: 300
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 30
+    upgradePolicy:
+      autoUpgrade: true
+      drain:
+        deleteEmptyDir: true
+        enable: true
+        force: true
+        timeoutSeconds: 300
+        podSelector: ''
+      maxParallelUpgrades: 1
+      safeLoad: false
+      waitForCompletion:
+        timeoutSeconds: 0
+    startupProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 20
+    image: doca-driver
+    repository: nvcr.io/nvidia/mellanox
+    version: 25.01-0.6.0.0-0
+    env:
+    - name: UNLOAD_STORAGE_MODULES
+      value: "true"
+    - name: RESTORE_DRIVER_ON_POD_TERMINATION
+      value: "true"
+    - name: CREATE_IFNAMES_UDEV
+      value: "true"
+    - name: ENTRYPOINT_DEBUG
+      value: 'true'
+EOF
+
+
+## Create IPoIBNetwork
+## Is thes nammespace scoped, do we need just one?
+cat <<EOF > macvlan-network.yaml
+apiVersion: mellanox.com/v1alpha1
+kind: MacvlanNetwork
+metadata:
+  name: rdmashared-net
+spec:
+  networkNamespace: default
+  master: ens8f1np1  ## MATCH name
+  mode: bridge
+  mtu: 9000
+  ipam: '{"type": "whereabouts", "range": "192.168.2.0/24", "gateway": "192.168.2.1"}'   ## Must be unique among all MacvlanNetwork objects
+EOF
+
+
+###  Install and Configure GPU Operator
+## Any settings that need to be changed?
+
+cat <<EOF > gpu-cluster-policy.yaml
+apiVersion: nvidia.com/v1
+kind: ClusterPolicy
+metadata:
+  name: gpu-cluster-policy
+spec:
+  vgpuDeviceManager:
+    config:
+      default: default
+    enabled: true
+  migManager:
+    config:
+      default: all-disabled
+      name: default-mig-parted-config
+    enabled: true
+  operator:
+    defaultRuntime: crio
+    initContainer: {}
+    runtimeClass: nvidia
+    use_ocp_driver_toolkit: true
+  dcgm:
+    enabled: true
+  gfd:
+    enabled: true
+  dcgmExporter:
+    config:
+      name: ''
+    enabled: true
+    serviceMonitor:
+      enabled: true
+  cdi:
+    default: false
+    enabled: false
+  driver:
+    licensingConfig:
+      configMapName: ''
+      nlsEnabled: true
+    enabled: true
+    kernelModuleType: open
+    certConfig:
+      name: ''
+    repository: quay.io/tariq_ibrahim   ## This is a custom image
+    useNvidiaDriverCRD: false
+    kernelModuleConfig:
+      name: ''
+    upgradePolicy:
+      autoUpgrade: true
+      drain:
+        deleteEmptyDir: false
+        enable: false
+        force: false
+        timeoutSeconds: 300
+      maxParallelUpgrades: 1
+      maxUnavailable: 25%
+      podDeletion:
+        deleteEmptyDir: false
+        force: false
+        timeoutSeconds: 300
+      waitForCompletion:
+        timeoutSeconds: 0
+    repoConfig:
+      configMapName: ''
+    version: 570.133.20   ## This is a custom image
+    virtualTopology:
+      config: ''
+    image: driver
+  devicePlugin:
+    config:
+      default: ''
+      name: ''
+    enabled: true
+    mps:
+      root: /run/nvidia/mps
+  gdrcopy:
+    enabled: false
+  kataManager:
+    config:
+      artifactsDir: /opt/nvidia-gpu-operator/artifacts/runtimeclasses
+  mig:
+    strategy: single
+  sandboxDevicePlugin:
+    enabled: true
+  validator:
+    plugin:
+      env:
+        - name: WITH_WORKLOAD
+          value: 'false'
+  nodeStatusExporter:
+    enabled: true
+  daemonsets:
+    rollingUpdate:
+      maxUnavailable: '1'
+    updateStrategy: RollingUpdate
+  sandboxWorkloads:
+    defaultWorkload: container
+    enabled: false
+  gds:
+    enabled: false
+  vgpuManager:
+    enabled: false
+  vfioManager:
+    enabled: true
+  toolkit:
+    enabled: true
+    installDir: /usr/local/nvidia
+EOF
+
+
+
+
+####
+### Other questions
+### 1. You mentioned something about network speed setting?  Where is that relavant?
+
+https://github.com/schmaustech/gpu-tools
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rdma-eth-b200-28-workload
+  namespace: default
+  annotations:
+    k8s.v1.cni.cncf.io/networks: rdmashared-net
+spec:
+  nodeSelector: 
+    kubernetes.io/hostname: b200-28.schmaustech.com
+  serviceAccountName: rdma
+  containers:
+  - image: quay.io/mlacourse/gpu-tools:0.0.3   ## Will need pull secret
+    name: rdma-b200-28-workload
+    securityContext:
+      privileged: true
+      capabilities:
+        add: [ "IPC_LOCK" ]
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+        rdma/rdma_shared_device_eth: 1
+      requests:
+        nvidia.com/gpu: 1
+        rdma/rdma_shared_device_eth: 1
