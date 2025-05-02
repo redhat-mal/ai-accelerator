@@ -6,6 +6,6 @@ resources:
 
 patches:
   - target:
-      group: nfd.openshift.io
-      kind: NodeFeatureDiscovery
-    path: patch-node-feature-discovery.yaml
+      group: mellanox.com
+      kind: NicClusterPolicy
+    path: patch-nic-policy.yaml
