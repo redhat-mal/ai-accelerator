@@ -24,7 +24,11 @@ spec:
           # TODO
 
           # NVIDIA Network Operator
-          # TODO
+          - cluster: local
+            url: https://kubernetes.default.svc
+            values:
+              name: nvidia-network-operator
+              path: components/operators/nvidia-network/aggregate/overlays/nvidia-b200
 
           # NVIDIA GPU Operator
           - cluster: local
