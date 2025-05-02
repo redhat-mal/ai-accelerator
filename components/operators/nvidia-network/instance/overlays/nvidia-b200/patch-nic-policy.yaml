@@ -1,15 +1,20 @@
+# See: https://docs.nvidia.com/networking/display/kubernetes24101/customizations/cr-full-example.html
+
 - op: add
   path: /spec
   value:
     rdmaSharedDevicePlugin:
+      # The config below directly propagates to k8s-rdma-shared-device-plugin configuration.
+      # Replace 'devices' with your (RDMA capable) netdevice name.
       config: |
         {
           "configList": [
             {
-              "resourceName": "rdma_shared_device_eth",
+              "resourceName": "rdma_shared_device_a",
               "rdmaHcaMax": 63,
               "selectors": {
-                "ifNames": ["ens8f1np1"]  ## UPDATE
+                "vendors": ["15b3"],
+                "deviceIDs": ["101b"]
               }
             }
           ]
