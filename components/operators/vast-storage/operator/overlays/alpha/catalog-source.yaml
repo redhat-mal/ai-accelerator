@@ -1,0 +1,13 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: redhat-certified-operators-v4-15
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: registry.redhat.io/redhat/certified-operator-index:v4.15
+  displayName: Red Hat Operators 4.15
+  publisher: Red Hat
+  updateStrategy:
+    registryPoll:
+      interval: 30m

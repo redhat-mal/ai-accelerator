@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - catalog-source.yaml
+
+patches:
+  - target:
+      kind: Subscription
+      name: vast-csi-operator
+    path: patch-channel.yaml
