@@ -24,6 +24,11 @@ spec:
   workerConfig:
     configData: |
       core:
+        worker:
+          tolerations:
+            - key: "nvidia/gpu"
+              operator: Exists
+              effect: NoSchedule
       #  labelWhiteList:
       #  noPublish: false
         sleepInterval: 60s
