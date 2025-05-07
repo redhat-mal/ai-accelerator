@@ -4,7 +4,7 @@ kind: Kustomization
 commonAnnotations:
   argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 
-namespace: openshift-sriov-network-operator
+namespace: openshift-nmstate
 
 resources:
   - ../../../operator/overlays/stable
