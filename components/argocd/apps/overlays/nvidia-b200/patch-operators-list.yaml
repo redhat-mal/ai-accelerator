@@ -83,11 +83,11 @@ spec:
               path: components/operators/sr-iov/aggregate/overlays/default
 
           # NM State Operator
-          - cluster: local
-            url: https://kubernetes.default.svc
-            values:
-              name: nm-state-operator
-              path: components/operators/nm-state/aggregate/overlays/default
+          #- cluster: local
+          #  url: https://kubernetes.default.svc
+          ##  values:
+          #    name: nm-state-operator
+          #    path: components/operators/nm-state/aggregate/overlays/default
 
         # - cluster: local
         #   url: https://kubernetes.default.svc

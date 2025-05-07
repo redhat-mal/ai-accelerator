@@ -7,5 +7,6 @@ resources:
 patches:
   - target:
       kind: Subscription
-      name: openshift-nmstate
+      name: kubernetes-nmstate-operator
+      namespace: openshift-nmstate
     path: patch-channel.yaml
