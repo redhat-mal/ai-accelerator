@@ -79,8 +79,8 @@ spec:
           - cluster: local
             url: https://kubernetes.default.svc
             values:
-              name: vast-storage-operator
-              path: components/operators/vast-storage/aggregate/overlays/default
+              name: sr-oiv-operator
+              path: components/operators/sr-iov/aggregate/overlays/default
 
         # - cluster: local
         #   url: https://kubernetes.default.svc
