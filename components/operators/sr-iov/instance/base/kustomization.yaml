@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: openshift-nfd
+namespace: openshift-sriov-network-operator
 
 resources:
-  - node-feature-discovery.yaml
+  - srivo-operator-config.yaml
