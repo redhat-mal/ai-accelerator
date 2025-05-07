@@ -7,5 +7,5 @@ resources:
 patches:
   - target:
       kind: Subscription
-      name: sriov-network-operator
+      name: openshift-nmstate
     path: patch-channel.yaml
