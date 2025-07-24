@@ -1,0 +1,31 @@
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIManager
+metadata:
+  name: apimanager-mikes
+  namespace: mikes-3scale
+spec:
+  wildcardDomain: apps.cluster-kwbn2.kwbn2.sandbox393.opentlc.com
+  system:
+    appSpec:
+      replicas: 1
+    sidekiqSpec:
+      replicas: 1
+    fileStorage: {}
+    sphinxSpec: {}
+  zync:
+    appSpec:
+      replicas: 1
+    queSpec:
+      replicas: 1
+  backend:
+    cronSpec:
+      replicas: 1
+    listenerSpec:
+      replicas: 1
+    workerSpec:
+      replicas: 1
+  apicast:
+    productionSpec:
+      replicas: 1
+    stagingSpec:
+      replicas: 1
