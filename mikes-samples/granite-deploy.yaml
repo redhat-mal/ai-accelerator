@@ -1,0 +1,122 @@
+---
+# Source: vllm-kserve/templates/inferenceservice.yaml
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  annotations:
+    serving.kserve.io/deploymentMode: Serverless
+    serving.knative.openshift.io/enablePassthrough: "true"
+    sidecar.istio.io/inject: "true"
+    sidecar.istio.io/rewriteAppHTTPProbers: "true"
+  name: granite
+  labels:
+    opendatahub.io/dashboard: 'true'
+    helm.sh/chart: vllm-kserve-0.4.1
+    app.kubernetes.io/name: vllm-kserve
+    app.kubernetes.io/instance: granite
+    app.kubernetes.io/version: "v0.9.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  predictor:
+    minReplicas: 1
+    maxReplicas: 1
+    annotations:
+      serving.knative.dev/progress-deadline: 30m
+    model:
+      args:
+        - --served-model-name={{ .Name }} 
+        - --gpu-memory-utilization=0.90
+      env:
+        - name: VLLM_LOGGING_LEVEL
+          value: INFO
+      modelFormat:
+        name: vLLM
+      name: ''
+      resources:
+        limits:
+          cpu: "2"
+          memory: 8Gi
+          nvidia.com/gpu: "1"
+        requests:
+          cpu: "1"
+          memory: 4Gi
+          nvidia.com/gpu: "1"
+      runtime: granite
+      storageUri: oci://quay.io/redhat-ai-services/modelcar-catalog:granite-3.3-2b-instruct
+    tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+---
+# Source: vllm-kserve/templates/servingruntime.yaml
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  annotations:
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+    opendatahub.io/template-display-name: vLLM NVIDIA GPU ServingRuntime for KServe
+  name: granite
+  labels:
+    opendatahub.io/dashboard: 'true'
+    helm.sh/chart: vllm-kserve-0.4.1
+    app.kubernetes.io/name: vllm-kserve
+    app.kubernetes.io/instance: granite
+    app.kubernetes.io/version: "v0.9.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: '8080'
+  containers:
+    - name: kserve-container
+      image: quay.io/modh/vllm:rhoai-2.21-cuda
+      ports:
+        - containerPort: 8080
+          protocol: TCP
+      command:
+        - python
+        - '-m'
+        - vllm.entrypoints.openai.api_server
+      args:
+        - --port=8080
+        - --model=/mnt/models
+      env:
+        - name: HF_HOME
+          value: /tmp/hf_home
+      volumeMounts:
+        - mountPath: /dev/shm
+          name: shm
+  multiModel: false
+  supportedModelFormats:
+    - autoSelect: true
+      name: vLLM
+  volumes:
+    - name: shm
+      emptyDir:
+        medium: Memory
+        sizeLimit: 2Gi
+---
+# Source: vllm-kserve/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: 'granite-test-connection'
+  labels:
+    opendatahub.io/dashboard: 'true'
+    helm.sh/chart: vllm-kserve-0.4.1
+    app.kubernetes.io/name: vllm-kserve
+    app.kubernetes.io/instance: granite
+    app.kubernetes.io/version: "v0.9.0.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command:
+        - /bin/sh
+        - -c
+        - 'wget /version'
+  restartPolicy: Never
